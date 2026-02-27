@@ -111,6 +111,12 @@
                 <a href="{{ route('provider.agents.index') }}" class="sidebar-link {{ request()->routeIs('provider.agents.*') ? 'active' : '' }}">
                     <i class="fas fa-user-tie w-5 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}"></i>{{ __('manage_agents') }}
                 </a>
+                <a href="{{ route('provider.financial') }}" class="sidebar-link {{ request()->routeIs('provider.financial') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line w-5 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}"></i>{{ __('financial') }}
+                </a>
+                <a href="{{ route('provider.reports') }}" class="sidebar-link {{ request()->routeIs('provider.reports') ? 'active' : '' }}">
+                    <i class="fas fa-file-alt w-5 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}"></i>{{ __('reports') }}
+                </a>
 
                 @elseif($prefix === 'agent')
                 <a href="{{ route('agent.dashboard') }}" class="sidebar-link {{ request()->routeIs('agent.dashboard') ? 'active' : '' }}">
@@ -121,6 +127,9 @@
                 </a>
                 <a href="{{ route('agent.financial') }}" class="sidebar-link {{ request()->routeIs('agent.financial') ? 'active' : '' }}">
                     <i class="fas fa-chart-line w-5 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}"></i>{{ __('financial') }}
+                </a>
+                <a href="{{ route('agent.settings') }}" class="sidebar-link {{ request()->routeIs('agent.settings') ? 'active' : '' }}">
+                    <i class="fas fa-cog w-5 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}"></i>{{ __('settings') }}
                 </a>
                 @endif
 

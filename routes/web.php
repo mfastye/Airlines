@@ -62,6 +62,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin,employee
     Route::resource('providers', ProviderController::class);
     Route::resource('agents', AdminAgentController::class);
     Route::post('/agents/{agent}/add-balance', [AdminAgentController::class, 'addBalance'])->name('agents.add-balance');
+    Route::post('/agents/{agent}/toggle-status', [AdminAgentController::class, 'toggleStatus'])->name('agents.toggle-status');
     Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/payments/{payment}/confirm', [PaymentController::class, 'confirm'])->name('payments.confirm');
@@ -99,11 +100,17 @@ Route::prefix('provider')->name('provider.')->middleware(['auth', 'role:provider
     Route::get('/bookings', [ProviderBookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/{booking}', [ProviderBookingController::class, 'show'])->name('bookings.show');
     Route::post('/bookings/{booking}/confirm', [ProviderBookingController::class, 'confirm'])->name('bookings.confirm');
+    Route::post('/bookings/{booking}/cancel', [ProviderBookingController::class, 'cancel'])->name('bookings.cancel');
+    Route::post('/bookings/{booking}/issue-ticket', [ProviderBookingController::class, 'issueTicket'])->name('bookings.issue-ticket');
     Route::post('/bookings/{booking}/upload-ticket', [ProviderBookingController::class, 'uploadTicket'])->name('bookings.upload-ticket');
+    Route::get('/financial', [ProviderBookingController::class, 'financial'])->name('financial');
+    Route::get('/reports', [ProviderBookingController::class, 'reports'])->name('reports');
     Route::get('/agents', [ProviderAgentController::class, 'index'])->name('agents.index');
     Route::get('/agents/create', [ProviderAgentController::class, 'create'])->name('agents.create');
     Route::post('/agents', [ProviderAgentController::class, 'store'])->name('agents.store');
     Route::get('/agents/{agent}', [ProviderAgentController::class, 'show'])->name('agents.show');
+    Route::get('/agents/{agent}/edit', [ProviderAgentController::class, 'edit'])->name('agents.edit');
+    Route::put('/agents/{agent}', [ProviderAgentController::class, 'update'])->name('agents.update');
     Route::post('/agents/{agent}/add-balance', [ProviderAgentController::class, 'addBalance'])->name('agents.add-balance');
     Route::post('/agents/{agent}/toggle-status', [ProviderAgentController::class, 'toggleStatus'])->name('agents.toggle-status');
 });
@@ -116,4 +123,6 @@ Route::prefix('agent')->name('agent.')->middleware(['auth', 'role:agent'])->grou
     Route::get('/bookings', [AgentDashboard::class, 'bookings'])->name('bookings');
     Route::get('/booking/{booking}', [AgentDashboard::class, 'showBooking'])->name('booking.show');
     Route::get('/financial', [AgentDashboard::class, 'financial'])->name('financial');
+    Route::get('/settings', [AgentDashboard::class, 'settings'])->name('settings');
+    Route::post('/settings', [AgentDashboard::class, 'updateSettings'])->name('settings.update');
 });

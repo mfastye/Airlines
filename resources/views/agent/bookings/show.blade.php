@@ -1,37 +1,46 @@
 @extends('layouts.admin')
-@section('title', __('booking_details'))
+@section('title', __('booking_details') . ' - ' . $booking->booking_reference)
 @section('content')
-<div class="max-w-4xl">
-    <div class="flex items-center mb-6">
-        <a href="{{ route('agent.bookings.index') }}" class="text-gray-500 hover:text-primary-600 {{ app()->getLocale() === 'ar' ? 'ml-3' : 'mr-3' }}"><i class="fas fa-arrow-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }}"></i></a>
-        <h2 class="text-xl font-bold text-gray-800 dark:text-white">{{ __('booking_details') }} - {{ $booking->booking_reference }}</h2>
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div><h2 class="text-xl font-bold text-gray-800 dark:text-white">{{ $booking->booking_reference }}</h2><span class="px-3 py-1 text-sm rounded-full {{ $booking->status === 'issued' ? 'bg-green-100 text-green-700' : ($booking->status === 'confirmed' ? 'bg-blue-100 text-blue-700' : ($booking->status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700')) }}">{{ ucfirst($booking->status) }}</span></div>
+        <a href="{{ route('agent.bookings') }}" class="text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400"><i class="fas fa-arrow-left {{ app()->getLocale() === 'ar' ? 'ml-1' : 'mr-1' }}"></i>{{ __('back') }}</a>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 text-center"><div class="text-xs text-gray-500">{{ __('total_price') }}</div><div class="text-xl font-bold text-primary-600">${{ number_format($booking->total_price, 2) }}</div></div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 text-center"><div class="text-xs text-gray-500">{{ __('payment_status') }}</div><span class="px-2 py-1 rounded-full text-xs {{ $booking->payment_status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">{{ __($booking->payment_status) }}</span></div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 text-center"><div class="text-xs text-gray-500">{{ __('booking_status') }}</div><span class="px-2 py-1 rounded-full text-xs {{ $booking->status === 'confirmed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">{{ __($booking->status) }}</span></div>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
-        <h3 class="font-semibold dark:text-white mb-3">{{ app()->getLocale() === 'ar' ? 'بيانات الرحلة' : 'Flight Details' }}</h3>
-        <div class="grid grid-cols-2 gap-4 text-sm">
-            <div><span class="text-gray-500">{{ __('flight_number') }}:</span> <span class="font-mono font-bold dark:text-white">{{ $booking->flight->flight_number ?? '-' }}</span></div>
-            <div><span class="text-gray-500">{{ __('airline') }}:</span> <span class="dark:text-white">{{ app()->getLocale() === 'ar' ? ($booking->flight->airline->name_ar ?? '') : ($booking->flight->airline->name_en ?? '') }}</span></div>
-            <div><span class="text-gray-500">{{ __('departure_airport') }}:</span> <span class="dark:text-white">{{ $booking->flight->departureAirport->code ?? '' }} - {{ app()->getLocale() === 'ar' ? ($booking->flight->departureAirport->name_ar ?? '') : ($booking->flight->departureAirport->name_en ?? '') }}</span></div>
-            <div><span class="text-gray-500">{{ __('arrival_airport') }}:</span> <span class="dark:text-white">{{ $booking->flight->arrivalAirport->code ?? '' }} - {{ app()->getLocale() === 'ar' ? ($booking->flight->arrivalAirport->name_ar ?? '') : ($booking->flight->arrivalAirport->name_en ?? '') }}</span></div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4"><i class="fas fa-plane {{ app()->getLocale() === 'ar' ? 'ml-2' : 'mr-2' }} text-primary-600"></i>{{ __('flight_info') }}</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between"><span class="text-gray-500">{{ __('flight_number') }}</span><span class="font-medium">{{ optional($booking->flight)->flight_number }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">{{ __('airline') }}</span><span class="font-medium">{{ optional(optional($booking->flight)->airline)->name_en }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">{{ __('from') }}</span><span class="font-medium">{{ optional(optional($booking->flight)->departureAirport)->code }} - {{ optional(optional($booking->flight)->departureAirport)->city_en }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">{{ __('to') }}</span><span class="font-medium">{{ optional(optional($booking->flight)->arrivalAirport)->code }} - {{ optional(optional($booking->flight)->arrivalAirport)->city_en }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">{{ __('departure') }}</span><span class="font-medium">{{ optional($booking->flight)->departure_time ? $booking->flight->departure_time->format('Y-m-d H:i') : '-' }}</span></div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4"><i class="fas fa-dollar-sign {{ app()->getLocale() === 'ar' ? 'ml-2' : 'mr-2' }} text-primary-600"></i>{{ __('price_details') }}</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between"><span class="text-gray-500">{{ __('total_price') }}</span><span class="font-bold text-lg">${{ number_format($booking->total_price, 2) }}</span></div>
+                <div class="flex justify-between"><span class="text-gray-500">{{ __('payment_status') }}</span><span class="px-2 py-1 text-xs rounded-full {{ ($booking->payment_status ?? 'pending') === 'paid' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700' }}">{{ ucfirst($booking->payment_status ?? 'pending') }}</span></div>
+                @if($booking->ticket_number)<div class="flex justify-between"><span class="text-gray-500">{{ __('ticket_number') }}</span><span class="font-medium text-green-600">{{ $booking->ticket_number }}</span></div>@endif
+                @if($booking->ticket_image)<a href="{{ asset('storage/' . $booking->ticket_image) }}" target="_blank" class="inline-flex items-center text-primary-600 hover:text-primary-700 text-sm"><i class="fas fa-download {{ app()->getLocale() === 'ar' ? 'ml-1' : 'mr-1' }}"></i>{{ __('download_ticket') }}</a>@endif
+            </div>
         </div>
     </div>
-    @if($booking->passengers && $booking->passengers->count() > 0)
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden mb-6">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700"><h3 class="font-semibold dark:text-white">{{ __('passengers') }}</h3></div>
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-4 py-2 text-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }}">{{ __('name') }}</th><th class="px-4 py-2 text-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }}">{{ app()->getLocale() === 'ar' ? 'رقم الجواز' : 'Passport' }}</th><th class="px-4 py-2 text-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }}">{{ app()->getLocale() === 'ar' ? 'رقم التذكرة' : 'Ticket #' }}</th></tr></thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                @foreach($booking->passengers as $p)
-                <tr><td class="px-4 py-2 dark:text-white">{{ $p->full_name }}</td><td class="px-4 py-2 font-mono text-xs dark:text-gray-300">{{ $p->passport_number }}</td><td class="px-4 py-2 font-mono text-xs text-primary-600">{{ $p->ticket_number ?? '-' }}</td></tr>
-                @endforeach
-            </tbody>
-        </table>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700"><h3 class="text-lg font-semibold text-gray-800 dark:text-white"><i class="fas fa-users {{ app()->getLocale() === 'ar' ? 'ml-2' : 'mr-2' }} text-primary-600"></i>{{ __('passengers') }}</h3></div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-4 py-3 text-start">{{ __('name') }}</th><th class="px-4 py-3 text-start">{{ __('passport') }}</th><th class="px-4 py-3 text-start">{{ __('type') }}</th><th class="px-4 py-3 text-start">{{ __('nationality') }}</th></tr></thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    @forelse($booking->passengers ?? [] as $p)
+                    <tr><td class="px-4 py-3 font-medium">{{ $p->first_name }} {{ $p->last_name }}</td><td class="px-4 py-3">{{ $p->passport_number }}</td><td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700">{{ ucfirst($p->type ?? 'adult') }}</span></td><td class="px-4 py-3">{{ $p->nationality ?? '-' }}</td></tr>
+                    @empty
+                    <tr><td colspan="4" class="px-4 py-4 text-center text-gray-500">{{ __('no_passengers') }}</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
-    @endif
 </div>
 @endsection

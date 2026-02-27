@@ -1,41 +1,50 @@
 @extends('layouts.admin')
-@section('title', app()->getLocale() === 'ar' ? 'الحساب المالي' : 'Financial Account')
+@section('title', __('financial'))
 @section('content')
-<h2 class="text-xl font-bold text-gray-800 dark:text-white mb-6">{{ app()->getLocale() === 'ar' ? 'الحساب المالي' : 'Financial Account' }}</h2>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center"><div class="text-sm text-gray-500">{{ app()->getLocale() === 'ar' ? 'الرصيد الحالي' : 'Current Balance' }}</div><div class="text-3xl font-bold text-primary-600">${{ number_format($account->balance ?? 0, 2) }}</div></div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center"><div class="text-sm text-gray-500">{{ app()->getLocale() === 'ar' ? 'إجمالي الحجوزات' : 'Total Bookings' }}</div><div class="text-3xl font-bold text-green-600">{{ $totalBookings ?? 0 }}</div></div>
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center"><div class="text-sm text-gray-500">{{ app()->getLocale() === 'ar' ? 'إجمالي المصروفات' : 'Total Spent' }}</div><div class="text-3xl font-bold text-red-600">${{ number_format($totalSpent ?? 0, 2) }}</div></div>
-</div>
-<div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
-    <div class="p-4 border-b border-gray-200 dark:border-gray-700"><h3 class="font-semibold dark:text-white">{{ app()->getLocale() === 'ar' ? 'كشف الحساب' : 'Transaction History' }}</h3></div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                    <th class="px-4 py-3 text-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }} font-semibold text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'ar' ? 'التاريخ' : 'Date' }}</th>
-                    <th class="px-4 py-3 text-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }} font-semibold text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'ar' ? 'النوع' : 'Type' }}</th>
-                    <th class="px-4 py-3 text-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }} font-semibold text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'ar' ? 'البيان' : 'Description' }}</th>
-                    <th class="px-4 py-3 text-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }} font-semibold text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'ar' ? 'دائن' : 'Credit' }}</th>
-                    <th class="px-4 py-3 text-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }} font-semibold text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'ar' ? 'مدين' : 'Debit' }}</th>
-                    <th class="px-4 py-3 text-{{ app()->getLocale() === 'ar' ? 'right' : 'left' }} font-semibold text-gray-600 dark:text-gray-300">{{ app()->getLocale() === 'ar' ? 'الرصيد' : 'Balance' }}</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                @forelse($transactions ?? [] as $tx)
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td class="px-4 py-3 text-gray-500 text-xs">{{ $tx->created_at->format('d M Y H:i') }}</td>
-                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full text-xs {{ $tx->type === 'credit' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">{{ $tx->type === 'credit' ? (app()->getLocale() === 'ar' ? 'إضافة' : 'Credit') : (app()->getLocale() === 'ar' ? 'خصم' : 'Debit') }}</span></td>
-                    <td class="px-4 py-3 text-gray-600 dark:text-gray-400">{{ $tx->description }}</td>
-                    <td class="px-4 py-3 text-green-600 font-semibold">{{ $tx->type === 'credit' ? '$' . number_format($tx->amount, 2) : '' }}</td>
-                    <td class="px-4 py-3 text-red-600 font-semibold">{{ $tx->type === 'debit' ? '$' . number_format($tx->amount, 2) : '' }}</td>
-                    <td class="px-4 py-3 font-semibold dark:text-white">${{ number_format($tx->balance_after ?? 0, 2) }}</td>
-                </tr>
-                @empty
-                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">{{ __('no_data') }}</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+<div class="space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between"><div><p class="text-sm text-gray-500">{{ __('main_balance') }}</p><p class="text-2xl font-bold text-gray-800 dark:text-white">${{ number_format($agent->balance ?? 0, 2) }}</p></div><div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center"><i class="fas fa-wallet text-green-600 text-xl"></i></div></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between"><div><p class="text-sm text-gray-500">{{ __('total_commissions') }}</p><p class="text-2xl font-bold text-accent-600">${{ number_format($commissionStats['total_commissions'] ?? 0, 2) }}</p></div><div class="w-12 h-12 bg-accent-100 dark:bg-accent-900/30 rounded-xl flex items-center justify-center"><i class="fas fa-percentage text-accent-600 text-xl"></i></div></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between"><div><p class="text-sm text-gray-500">{{ __('total_debits') }}</p><p class="text-2xl font-bold text-red-600">${{ number_format($commissionStats['total_debits'] ?? 0, 2) }}</p></div><div class="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center"><i class="fas fa-minus-circle text-red-600 text-xl"></i></div></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-200 dark:border-gray-700">
+            <div class="flex items-center justify-between"><div><p class="text-sm text-gray-500">{{ __('total_credits') }}</p><p class="text-2xl font-bold text-green-600">${{ number_format($commissionStats['total_credits'] ?? 0, 2) }}</p></div><div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center"><i class="fas fa-plus-circle text-green-600 text-xl"></i></div></div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+        <form method="GET" class="flex flex-wrap gap-3">
+            <select name="type" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm"><option value="">{{ __('all_types') }}</option><option value="credit" {{ request('type') === 'credit' ? 'selected' : '' }}>{{ __('credit') }}</option><option value="debit" {{ request('type') === 'debit' ? 'selected' : '' }}>{{ __('debit') }}</option></select>
+            <input type="date" name="date_from" value="{{ request('date_from') }}" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">
+            <input type="date" name="date_to" value="{{ request('date_to') }}" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">
+            <button type="submit" class="bg-primary-600 text-white rounded-lg px-4 py-2 hover:bg-primary-700 text-sm"><i class="fas fa-filter {{ app()->getLocale() === 'ar' ? 'ml-1' : 'mr-1' }}"></i>{{ __('filter') }}</button>
+        </form>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700"><h3 class="text-lg font-semibold text-gray-800 dark:text-white">{{ __('transactions') }}</h3></div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="px-4 py-3 text-start">{{ __('date') }}</th><th class="px-4 py-3 text-start">{{ __('description') }}</th><th class="px-4 py-3 text-start">{{ __('type') }}</th><th class="px-4 py-3 text-start">{{ __('amount') }}</th><th class="px-4 py-3 text-start">{{ __('balance_after') }}</th></tr></thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    @forelse($transactions ?? [] as $t)
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="px-4 py-3 text-xs text-gray-500">{{ $t->created_at->format('Y-m-d H:i') }}</td>
+                        <td class="px-4 py-3">{{ app()->getLocale() === 'ar' ? ($t->description_ar ?? $t->description_en) : $t->description_en }}</td>
+                        <td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full {{ $t->type === 'credit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">{{ $t->type === 'credit' ? __('credit') : __('debit') }}</span></td>
+                        <td class="px-4 py-3 font-medium {{ $t->type === 'credit' ? 'text-green-600' : 'text-red-600' }}">{{ $t->type === 'credit' ? '+' : '-' }}${{ number_format($t->amount, 2) }}</td>
+                        <td class="px-4 py-3 font-medium">${{ number_format($t->balance_after ?? 0, 2) }}</td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">{{ __('no_transactions') }}</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if(is_object($transactions ?? null) && method_exists($transactions, 'links'))<div class="p-4">{{ $transactions->withQueryString()->links() }}</div>@endif
     </div>
 </div>
 @endsection

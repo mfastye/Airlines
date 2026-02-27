@@ -9,20 +9,29 @@ use App\Models\Booking;
 use App\Models\Customer;
 use App\Models\Flight;
 use App\Models\FlightSeat;
-use App\Models\Passport;
 use App\Services\BookingService;
+use App\Services\FinancialTransactionService;
 use App\Services\SmartSearchService;
+use App\Services\WhatsappService;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
     protected SmartSearchService $searchService;
     protected BookingService $bookingService;
+    protected FinancialTransactionService $financialService;
+    protected WhatsappService $whatsappService;
 
-    public function __construct(SmartSearchService $searchService, BookingService $bookingService)
-    {
+    public function __construct(
+        SmartSearchService $searchService,
+        BookingService $bookingService,
+        FinancialTransactionService $financialService,
+        WhatsappService $whatsappService
+    ) {
         $this->searchService = $searchService;
         $this->bookingService = $bookingService;
+        $this->financialService = $financialService;
+        $this->whatsappService = $whatsappService;
     }
 
     protected function getAgent(): Agent
@@ -40,11 +49,21 @@ class DashboardController extends Controller
             'total_bookings' => Booking::where('agent_id', $agent->id)->count(),
             'pending_bookings' => Booking::where('agent_id', $agent->id)->where('status', 'pending')->count(),
             'confirmed_bookings' => Booking::where('agent_id', $agent->id)->where('status', 'confirmed')->count(),
+            'issued_bookings' => Booking::where('agent_id', $agent->id)->where('status', 'issued')->count(),
+            'today_bookings' => Booking::where('agent_id', $agent->id)->whereDate('created_at', today())->count(),
             'balance' => $agent->balance,
-            'total_revenue' => Booking::where('agent_id', $agent->id)->where('status', 'confirmed')->sum('total_price'),
+            'total_revenue' => Booking::where('agent_id', $agent->id)->whereIn('status', ['confirmed', 'issued'])->sum('total_price'),
+            'commission_balance' => 0,
         ];
 
-        $recentBookings = Booking::with(['customer', 'flight.airline'])
+        if ($agent->financialAccount) {
+            $stats['commission_balance'] = $agent->financialAccount->transactions()
+                ->where('type', 'credit')
+                ->where('description_en', 'LIKE', '%Commission%')
+                ->sum('amount');
+        }
+
+        $recentBookings = Booking::with(['customer', 'flight.airline', 'flight.departureAirport', 'flight.arrivalAirport'])
             ->where('agent_id', $agent->id)
             ->latest()->limit(10)->get();
 
@@ -94,24 +113,21 @@ class DashboardController extends Controller
         ]);
 
         $seat = FlightSeat::findOrFail($request->flight_seat_id);
-        $totalPassengers = count(array_filter($request->passengers, fn($p) => $p['type'] !== 'infant'));
         $totalPrice = 0;
 
         foreach ($request->passengers as $p) {
             $totalPrice += match ($p['type']) {
-                'adult' => $seat->adult_price,
-                'child' => $seat->child_price,
-                'infant' => $seat->infant_price,
+                'adult' => (float)$seat->adult_price,
+                'child' => (float)$seat->child_price,
+                'infant' => (float)$seat->infant_price,
                 default => 0,
             };
         }
 
-        // Check agent balance
-        if ($agent->balance < $totalPrice) {
-            return back()->withErrors(['error' => __('messages.insufficient_balance')]);
+        if ((float)$agent->balance < $totalPrice) {
+            return back()->withErrors(['error' => __('Insufficient balance. Required: $') . number_format($totalPrice, 2) . __('. Available: $') . number_format($agent->balance, 2)]);
         }
 
-        // Create customer
         $nameParts = explode(' ', $request->customer_name, 2);
         $customer = Customer::create([
             'first_name' => $nameParts[0],
@@ -119,8 +135,6 @@ class DashboardController extends Controller
             'phone' => $request->customer_phone,
             'whatsapp' => $request->customer_phone,
         ]);
-
-        $flight = Flight::findOrFail($request->flight_id);
 
         $booking = $this->bookingService->createBooking([
             'customer_id' => $customer->id,
@@ -137,10 +151,9 @@ class DashboardController extends Controller
             $booking->passengers()->create($passenger);
         }
 
-        // Auto-confirm since agent has balance
-        $this->bookingService->confirmBooking($booking, auth()->id());
+        $this->whatsappService->sendBookingConfirmation($booking);
 
-        return redirect()->route('agent.booking.show', $booking->id)->with('success', __('messages.booking_created'));
+        return redirect()->route('agent.booking.show', $booking->id)->with('success', __('Booking created successfully'));
     }
 
     public function bookings(Request $request)
@@ -151,14 +164,27 @@ class DashboardController extends Controller
             ->where('agent_id', $agent->id);
 
         if ($request->filled('search')) {
-            $query->where('booking_reference', 'LIKE', "%{$request->search}%");
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('booking_reference', 'LIKE', "%{$search}%")
+                  ->orWhereHas('customer', function ($cq) use ($search) {
+                      $cq->where('first_name', 'LIKE', "%{$search}%")
+                          ->orWhere('last_name', 'LIKE', "%{$search}%");
+                  });
+            });
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
 
         $bookings = $query->latest()->paginate(15);
-        return view('agent.bookings', compact('bookings', 'agent'));
+        return view('agent.bookings.index', compact('bookings', 'agent'));
     }
 
     public function showBooking(Booking $booking)
@@ -167,15 +193,66 @@ class DashboardController extends Controller
         if ($booking->agent_id !== $agent->id) abort(403);
 
         $booking->load(['customer', 'flight.airline', 'flight.departureAirport', 'flight.arrivalAirport', 'passengers', 'payments']);
-        return view('agent.booking-show', compact('booking', 'agent'));
+        return view('agent.bookings.show', compact('booking', 'agent'));
     }
 
-    public function financial()
+    public function financial(Request $request)
     {
         $agent = $this->getAgent();
         $account = $agent->financialAccount;
-        $transactions = $account ? $account->transactions()->latest()->paginate(20) : collect();
 
-        return view('agent.financial', compact('agent', 'account', 'transactions'));
+        $query = $account ? $account->transactions()->latest() : null;
+
+        if ($query && $request->filled('type')) {
+            $query->where('type', $request->type);
+        }
+        if ($query && $request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($query && $request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $transactions = $query ? $query->paginate(20) : collect();
+
+        $commissionStats = [
+            'total_commissions' => 0,
+            'total_debits' => 0,
+            'total_credits' => 0,
+        ];
+        if ($account) {
+            $commissionStats['total_commissions'] = $account->transactions()
+                ->where('type', 'credit')
+                ->where('description_en', 'LIKE', '%Commission%')
+                ->sum('amount');
+            $commissionStats['total_debits'] = $account->transactions()->where('type', 'debit')->sum('amount');
+            $commissionStats['total_credits'] = $account->transactions()->where('type', 'credit')->sum('amount');
+        }
+
+        return view('agent.financial.index', compact('agent', 'account', 'transactions', 'commissionStats'));
+    }
+
+    public function settings()
+    {
+        $agent = $this->getAgent();
+        return view('agent.settings.index', compact('agent'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $agent = $this->getAgent();
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+        ]);
+
+        $agent->update($request->only(['name', 'phone', 'email']));
+
+        $user = auth()->user();
+        $user->update(['name' => $request->name, 'email' => $request->email ?? $user->email]);
+
+        return back()->with('success', __('Settings updated'));
     }
 }
